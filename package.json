@@ -1,0 +1,60 @@
+{
+  "name": "@phxerp/n8n-nodes-phx",
+  "version": "0.1.0",
+  "description": "This is a node to control PHX, a ERP software made by PHXERP Gmbh",
+  "keywords": [
+    "n8n-community-node-package"
+  ],
+  "license": "MIT",
+  "homepage": "https://phx-erp.de",
+  "author": {
+    "name": "PHXERP Gmbh",
+    "email": "info@phx-erp.de"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PHX-ERP/n8n-nodes-phx"
+  },
+  "engines": {
+    "node": ">=20.15"
+  },
+  "main": "dist/nodes/index.js",
+  "scripts": {
+    "run": "npm run build && docker restart bbc72992493d",
+    "build": "npx rimraf dist && tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/ExampleCredentialsApi.credentials.js",
+      "dist/credentials/HttpBinApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Phx/Phx.node.js",
+      "dist/nodes/HttpBin/HttpBin.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@typescript-eslint/parser": "~8.32.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "gulp": "^5.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "axios": "^1.12.2"
+  }
+}
