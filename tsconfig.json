@@ -23,5 +23,5 @@
   "include": [
     "nodes/**/*",
     "credentials/**/*"
-, "crendentials/PHXApi.credentials.ts"  ]
+  ]
 }

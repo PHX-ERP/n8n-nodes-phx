@@ -30,8 +30,8 @@ export class Phx implements INodeType {
 		defaults: {
 			name: 'PHX',
 		},
-		inputs: [NodeConnectionType.Main],
-		outputs: [NodeConnectionType.Main],
+		inputs: ['main'],
+		outputs: ['main'],
 		usableAsTool: true,
 		credentials: [
 			{
@@ -115,7 +115,7 @@ export class Phx implements INodeType {
 						name: 'query',
 						values: [
 							{
-								displayName: 'Query name',
+								displayName: 'Query Name or ID',
 								name: 'query',
 								type: 'options',
 								typeOptions: {

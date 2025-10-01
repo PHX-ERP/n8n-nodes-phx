@@ -27,7 +27,5 @@ export async function getProductsOperation(
 		} else {
 			throw new Error(response.statusText);
 		}
-	}	
-
-	return response.data;
+	}
 }

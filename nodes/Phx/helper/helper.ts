@@ -52,7 +52,7 @@ export async function fetchSearchInputFields(
 	let resourceName: string = this.getNodeParameter('resource') as string;
 	resourceName = resourceName.charAt(0).toUpperCase() + resourceName.slice(1);
 
- 	const searchInputQuery = 
+	const searchInputQuery = 
 	`{ 
 		__type(name:"${resourceName}SearchInput") { 
 			inputFields { 
