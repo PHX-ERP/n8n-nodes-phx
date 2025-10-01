@@ -1,5 +1,5 @@
 {
-  "name": "@phxerp/n8n-nodes-phx",
+  "name": "@phx-erp/n8n-nodes-phx",
   "version": "0.1.0",
   "description": "This is a node to control PHX, a ERP software made by PHXERP Gmbh",
   "keywords": [
