@@ -1,5 +1,5 @@
 import type { IDataObject, IExecuteFunctions, ILoadOptionsFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
-import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
 
 // Functions to add:
@@ -30,8 +30,8 @@ export class Phx implements INodeType {
 		defaults: {
 			name: 'PHX',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: ['main'] as any,
+		outputs: ['main'] as any,
 		usableAsTool: true,
 		credentials: [
 			{

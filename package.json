@@ -20,13 +20,12 @@
   },
   "main": "dist/nodes/index.js",
   "scripts": {
-    "run": "npm run build && docker restart bbc72992493d",
     "build": "npx rimraf dist && tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json",
     "lintfix": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json --fix",
-    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
+    "prepublishOnly": "npm run build && npm run lint"
   },
   "files": [
     "dist"
