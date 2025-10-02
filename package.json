@@ -1,6 +1,6 @@
 {
   "name": "@phx-erp/n8n-nodes-phx",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "This is a node to control PHX, a ERP software made by PHXERP Gmbh",
   "keywords": [
     "n8n-community-node-package"
