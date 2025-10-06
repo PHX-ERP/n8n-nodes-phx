@@ -1,6 +1,6 @@
 import type { IExecuteFunctions, INodeExecutionData, INodePropertyOptions } from 'n8n-workflow';
 import { PHXFilter, PHXModifier } from '../interfaces';
-import { fetchAxios, getAllColumnsOfType } from '../helper/helper';
+import { fetchPHX, getAllColumnsOfType } from '../helper/helper';
 import { AxiosResponse } from 'axios';
 
 export async function genericGetOperation(
@@ -33,7 +33,7 @@ export async function genericGetOperation(
 		}
 	}`
 	
-	const response = await fetchAxios.call(this, query);
+	const response = await fetchPHX.call(this, query);
 	if (response.status === 408)
 		throw new Error('Request timed out');
 
@@ -72,7 +72,7 @@ export async function genericUpsertOperation(
 		input: inputObj
 	};
 
-	const response = await fetchAxios.call(this, mutation, variables);
+	const response = await fetchPHX.call(this, mutation, variables);
 	if (response?.status === 408)
 		throw new Error('Request timed out');
 

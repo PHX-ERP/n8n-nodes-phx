@@ -1,17 +1,15 @@
 import type { IExecuteFunctions, ILoadOptionsFunctions, INodePropertyOptions } from 'n8n-workflow';
-import axios, { AxiosResponse } from 'axios';
-import https from 'https';
 
 function isPrimitive(typeStr: string): boolean {
 	if (typeStr === undefined || typeStr === null) return false;
 	return ["string", "number", "boolean", "float", "date", "int"].includes(typeStr.toLowerCase());
 }
 
-export async function fetchAxios(
+export async function fetchPHX(
 	this: IExecuteFunctions | ILoadOptionsFunctions,
 	query: string,
 	variables?: Record<string, any>
-): Promise<AxiosResponse<any>> {
+): Promise<any> {
 	const credentials = await this.getCredentials('phxApi');
 
 	let webUrl = credentials.webUrl as string;
@@ -21,29 +19,28 @@ export async function fetchAxios(
 
 	const apiKey = credentials.apiKey as string;
 
-	let httpsAgent = new https.Agent({ rejectUnauthorized: false });
-	let response;
+	const requestBody: any = { query };
+	if (variables)
+		requestBody.variables = variables;
 
-	try {
-		const requestBody: any = { query };
-		if (variables)
-			requestBody.variables = variables;
+	const response = await fetch(webUrl, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify(requestBody),
+		// disable TLS verification
+		agent: new (require('https').Agent)({ rejectUnauthorized: false }),
+	} as any); // `agent` not typed in fetch yet
 
-		response = await axios.post(
-			`${webUrl}`,
-			requestBody,
-			{
-				headers: { Authorization: `Bearer ${apiKey}` },
-				httpsAgent,
-			},
-		);
-		
-		return response;
-
-	} catch (error: any) {
-		throw new Error(error.message);
+	if (!response.ok) {
+		throw new Error(`HTTP ${response.status}: ${await response.text()}`);
 	}
+
+	return response.json();
 }
+
 
 export async function fetchSearchInputFields(
 	this: IExecuteFunctions | ILoadOptionsFunctions
@@ -64,7 +61,7 @@ export async function fetchSearchInputFields(
 		} 
 	}`;
 
-	const response = await fetchAxios.call(this, searchInputQuery);
+	const response = await fetchPHX.call(this, searchInputQuery);
 	if (!response)
 		throw new Error("Failed to get fields via searchInputQuery");
 
@@ -95,7 +92,7 @@ export async function getAllColumnsOfType(
 		}
 	}`;
 
-	const response = await fetchAxios.call(this, getAllColumnsOfTypeQuery);
+	const response = await fetchPHX.call(this, getAllColumnsOfTypeQuery);
 	if (!response)
 		throw new Error("Failed to get fields via getAllColumnsOfTypeQuery");
 
