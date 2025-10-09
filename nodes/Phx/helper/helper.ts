@@ -129,7 +129,7 @@ export const flattenObject = (obj: IDataObject, prefix = ''): IDataObject => {
 	const flattened: IDataObject = {};
 
 	for (const key in obj) {
-		if (obj.hasOwnProperty(key)) {
+		if (Object.prototype.hasOwnProperty.call(obj, key)) {
 			const newKey = prefix ? `${prefix}.${key}` : key;
 			
 			if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {

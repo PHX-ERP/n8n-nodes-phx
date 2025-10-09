@@ -246,7 +246,7 @@ export class Phx implements INodeType {
 				name: 'simplify',
 				type: 'boolean',
 				default: false,
-				description: 'Whether to return only the 10 most relevant fields and flatten nested fields.',
+				description: 'Whether to return only the 10 most relevant fields and flatten nested fields',
 				displayOptions: {
 					show: {
 						resource: ['product', 'address', "document"],
