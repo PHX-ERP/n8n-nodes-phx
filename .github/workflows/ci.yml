@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.15, 21]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run formatting check
+        run: npm run format -- --check
+
+      - name: Build project
+        run: npm run build
+
+      # - name: Verify build output
+      #   run: |
+      #     if [ ! -d "dist" ]; then
+      #       echo "❌ Build failed - dist directory not found"
+      #       exit 1
+      #     fi
+          
+      #     if [ ! -f "dist/nodes/index.js" ]; then
+      #       echo "❌ Build failed - main entry point not found"
+      #       exit 1
+      #     fi
+          
+      #     if [ ! -f "dist/credentials/PHXApi.credentials.js" ]; then
+      #       echo "❌ Build failed - credentials not found"
+      #       exit 1
+      #     fi
+          
+      #     if [ ! -f "dist/nodes/Phx/Phx.node.js" ]; then
+      #       echo "❌ Build failed - PHX node not found"
+      #       exit 1
+      #     fi
+          
+      #     echo "✅ Build verification passed"
+
+      # - name: Check package.json structure
+      #   run: |
+      #     # Verify package.json has required fields
+      #     node -e "
+      #       const pkg = require('./package.json');
+      #       const required = ['name', 'version', 'description', 'main', 'n8n'];
+      #       const missing = required.filter(field => !pkg[field]);
+      #       if (missing.length > 0) {
+      #         console.error('❌ Missing required fields:', missing);
+      #         process.exit(1);
+      #       }
+      #       console.log('✅ Package.json structure is valid');
+      #     "
+
+      # - name: Validate n8n node structure
+      #   run: |
+      #     # Check if the built node can be loaded
+      #     node -e "
+      #       try {
+      #         const node = require('./dist/nodes/Phx/Phx.node.js');
+      #         if (!node.Phx) {
+      #           throw new Error('PHX node class not found');
+      #         }
+      #         console.log('✅ PHX node loads successfully');
+      #       } catch (error) {
+      #         console.error('❌ Failed to load PHX node:', error.message);
+      #         process.exit(1);
+      #       }
+      #     "
+
+      # - name: Upload build artifacts
+      #   if: matrix.node-version == '20.15'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: dist-files
+      #     path: dist/
+      #     retention-days: 7

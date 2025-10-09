@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.15'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, using all commits"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            echo "Generating changelog from $PREVIOUS_TAG to ${{ github.event.release.tag_name }}"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges $PREVIOUS_TAG..HEAD)
+          fi
+          
+          # Save changelog to file
+          echo "$CHANGELOG" > CHANGELOG.md
+          
+          # Also save to output for use in other steps
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update release notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+            
+            const releaseNotes = `## What's New in ${{ github.event.release.tag_name }}
+            
+            ${changelog}
+            
+            ## Installation
+            
+            \`\`\`bash
+            npm install @phx-erp/n8n-nodes-phx@${{ github.event.release.tag_name }}
+            \`\`\`
+            
+            ## Usage in n8n
+            
+            1. Go to your n8n instance
+            2. Navigate to Settings → Community Nodes
+            3. Install \`@phx-erp/n8n-nodes-phx\`
+            4. Configure your PHX API credentials
+            5. Start using the PHX node in your workflows
+            
+            ## Documentation
+            
+            For detailed documentation and examples, visit our [GitHub repository](https://github.com/PHX-ERP/n8n-nodes-phx).
+            
+            ## Support
+            
+            If you encounter any issues or have questions, please [open an issue](https://github.com/PHX-ERP/n8n-nodes-phx/issues) on GitHub.`;
+            
+            // Update the release with the generated notes
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+              body: releaseNotes
+            });
+
+      - name: Notify success
+        run: |
+          echo "✅ Release ${{ github.event.release.tag_name }} has been processed"
+          echo "📦 Package available at: https://www.npmjs.com/package/@phx-erp/n8n-nodes-phx"
+          echo "🔗 Release notes: ${{ github.event.release.html_url }}"

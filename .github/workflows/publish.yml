@@ -1,0 +1,140 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'dist/**'
+      - 'nodes/**'
+      - 'credentials/**'
+      - 'tsconfig.json'
+      - 'gulpfile.js'
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.15'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Build project
+        run: npm run build
+
+      # - name: Run tests (if available)
+      #   run: npm test --if-present
+      #   continue-on-error: true
+
+      - name: Check if version needs bumping
+        id: version-check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if this is a manual dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "manual_bump=true" >> $GITHUB_OUTPUT
+            echo "bump_type=${{ github.event.inputs.version_type }}" >> $GITHUB_OUTPUT
+          else
+            # Check if package.json was modified in the last commit
+            if git diff --name-only HEAD~1 HEAD | grep -q "package.json"; then
+              echo "version_modified=true" >> $GITHUB_OUTPUT
+            else
+              echo "version_modified=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Bump version
+        if: steps.version-check.outputs.manual_bump == 'true' || steps.version-check.outputs.version_modified == 'true'
+        run: |
+          if [ "${{ steps.version-check.outputs.manual_bump }}" = "true" ]; then
+            npm version ${{ steps.version-check.outputs.bump_type }} --no-git-tag-version
+          else
+            # For automatic pushes, use patch version
+            npm version patch --no-git-tag-version
+          fi
+          
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Commit version bump
+        if: steps.version-check.outputs.manual_bump == 'true' || steps.version-check.outputs.version_modified == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${{ env.new_version }} [skip ci]"
+          git push
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.manual_bump == 'true' || steps.version-check.outputs.version_modified == 'true'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.version-check.outputs.manual_bump == 'true' || steps.version-check.outputs.version_modified == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.new_version }}
+          release_name: Release v${{ env.new_version }}
+          body: |
+            ## Changes in v${{ env.new_version }}
+            
+            This release includes the latest updates to the PHX ERP n8n node.
+            
+            ### Installation
+            ```bash
+            npm install @phx-erp/n8n-nodes-phx@${{ env.new_version }}
+            ```
+            
+            ### What's New
+            - Latest updates and improvements
+            - Bug fixes and enhancements
+            
+            For more information, visit the [GitHub repository](https://github.com/PHX-ERP/n8n-nodes-phx).
+          draft: false
+          prerelease: false
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Successfully published @phx-erp/n8n-nodes-phx@${{ env.new_version }} to npm"
+          echo "📦 Package available at: https://www.npmjs.com/package/@phx-erp/n8n-nodes-phx"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Failed to publish package to npm"
+          echo "Please check the logs for more details"
