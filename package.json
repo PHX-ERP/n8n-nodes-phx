@@ -22,9 +22,9 @@
   "scripts": {
     "build": "npx rimraf dist && tsc && gulp build:icons",
     "dev": "tsc --watch",
-    "format": "prettier nodes credentials --write",
-    "lint": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json",
-    "lintfix": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json --fix",
+    "format": "npx prettier nodes credentials --write",
+    "lint": "npx eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json",
+    "lintfix": "npx eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\" package.json --fix",
     "prepublishOnly": "npm run build && npm run lint",
     "version:patch": "npm version patch --no-git-tag-version",
     "version:minor": "npm version minor --no-git-tag-version",
