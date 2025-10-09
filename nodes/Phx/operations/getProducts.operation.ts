@@ -1,6 +1,6 @@
 import type { IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { PHXFilter } from '../interfaces';
-import { genericGetOperation } from './generic.operation';
+import { genericGetOperation, genericSimplifyOperation } from './generic.operation';
 
 export async function getProductsOperation(
 	this: IExecuteFunctions,
@@ -10,22 +10,11 @@ export async function getProductsOperation(
   ): Promise<INodeExecutionData[]> {
 
 	const response = await genericGetOperation.call(this, queryFilter, inputFilter, 'getProducts');
+	
+	const products = response?.data?.getProducts?.items;
+	if (!Array.isArray(products))
+		return [];
 
-	// Check if data exists
-	if (response?.data) {
-		const products = response?.data?.getProducts?.items;
-		return products.map((product: any) => ({
-			json: {
-				...item.json,
-				...products,
-			},
-		}));
-	} else {
-		const error = response?.data?.errors[0]?.message;
-		if (error) {
-			throw new Error(error);
-		} else {
-			throw new Error(response.statusText);
-		}
-	}
+	const simplified: any[] = await genericSimplifyOperation.call(this, products);
+	return simplified.map((prod: any) => ({ json: prod }));
 }

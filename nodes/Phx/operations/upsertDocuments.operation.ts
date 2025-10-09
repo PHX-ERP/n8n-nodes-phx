@@ -9,12 +9,11 @@ export async function upsertDocumentsOperation(
 	modifiers: PHXModifier[] = [],
   ): Promise<INodeExecutionData[]> {
 
-    const response = await genericUpsertOperation.call(this, modifiers, 'saveDocument', 'DocumentInput!', "input", item);
-
+    await genericUpsertOperation.call(this, modifiers, 'saveDocument', 'DocumentInput!', "input", item);
     return [
         {
             json: {
-                ...response.data
+                identifier: item.json.identifier
             },
         },
     ];

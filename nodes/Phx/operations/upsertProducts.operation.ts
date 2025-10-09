@@ -8,13 +8,12 @@ export async function upsertProductsOperation(
 	modifiers: PHXModifier[] = [],
   ): Promise<INodeExecutionData[]> {
 
-    const response = await genericUpsertOperation.call(this, modifiers, 'saveProduct', 'ProductInput!', "input", item);
-
+    const response: any = await genericUpsertOperation.call(this, modifiers, 'saveProduct', 'ProductInput!', "input", item);
     return [
-        {
-            json: {
-                ...response.data,
-            },
-        },
-    ];
+		{
+			json: {
+                id: response.saveProduct.id
+            }
+		},
+	];
 }

@@ -8,13 +8,12 @@ export async function upsertAddressesOperation(
 	modifiers: PHXModifier[] = [],
   ): Promise<INodeExecutionData[]> {
 
-    const response = await genericUpsertOperation.call(this, modifiers, 'saveAddress', 'AddressInput!', 'address', item);
-
+    const response: any = await genericUpsertOperation.call(this, modifiers, 'saveAddress', 'AddressInput!', 'address', item);
     return [
         {
             json: {
-                ...response.data,
-            },
+                id: response.saveAddress.id
+            }
         },
     ];
 }

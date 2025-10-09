@@ -1,15 +1,6 @@
 import type { IDataObject, IExecuteFunctions, ILoadOptionsFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-
-// Functions to add:
-// ✅ getProductByIdentifier-> Identifier
-// ✅ getAddressByDebitorIdentifier -> Identifier
-// ✅ getAddressByCreditorIdentifier -> Identifier
-// ✅ getDocumentByIdentifier -> DocumentDefinitionIdentifier, DocumentIdentifier
-// ❌ customGraphQlCall -> Have the regular ceritifate field and only query and variables
-// V2 -> Define what fields should be returned
-
 import { getAllColumnsOfType, fetchSearchInputFields } from './helper/helper';
 import { getProductsOperation } from './operations/getProducts.operation';
 import { getAddressesOperation } from './operations/getAddresses.operation';
@@ -18,6 +9,9 @@ import { PHXFilter, PHXModifier } from './interfaces';
 import { upsertDocumentsOperation } from './operations/upsertDocuments.operation';
 import { upsertProductsOperation } from './operations/upsertProducts.operation';
 import { upsertAddressesOperation } from './operations/upsertAddresses.operation';
+import { deleteDocumentOperation } from './operations/deleteDocument.operation';
+import { deleteAddressOperation } from './operations/deleteAddress.operation';
+import { deleteProductOperation } from './operations/deleteProduct.operation';
 
 export class Phx implements INodeType {
 	description: INodeTypeDescription = {
@@ -25,8 +19,8 @@ export class Phx implements INodeType {
 		name: 'phx',
 		group: ['transform'],
 		icon: 'file:phx.svg',
-		version: 16,
-		description: 'This is a node to control PHX',
+		version: 18,
+		description: 'Interact with PHX ERP system to manage products, addresses, and documents',
 		defaults: {
 			name: 'PHX',
 		},
@@ -64,8 +58,9 @@ export class Phx implements INodeType {
 					show: { resource: ['product'] },
 				},
 			options: [
-				{ name: 'Get Products', value: 'getProducts', action: 'Get products' },
-				{ name: 'Upsert Products', value: 'upsertProducts', action: 'Upsert a product' },
+				{ name: 'Get Many', value: 'getProducts', action: 'Get many products' },
+				{ name: 'Update', value: 'upsertProducts', action: 'Update products' },
+				{ name: 'Delete', value: 'deleteProduct', action: 'Delete a product' },
 			],
 				default: 'getProducts',
 			},
@@ -80,8 +75,9 @@ export class Phx implements INodeType {
 					show: { resource: ['address'] },
 				},
 			options: [
-				{ name: 'Get Addresses', value: 'getAddresses', action: 'Get addresses' },
-				{ name: 'Upsert Addresses', value: 'upsertAddresses', action: 'Upsert an address' },
+				{ name: 'Get Many', value: 'getAddresses', action: 'Get many addresses' },
+				{ name: 'Update', value: 'upsertAddresses', action: 'Update addresses' },
+				{ name: 'Delete', value: 'deleteAddress', action: 'Delete an address' },
 			],
 				default: 'getAddresses',
 			},
@@ -96,15 +92,16 @@ export class Phx implements INodeType {
 					show: { resource: ['document'] },
 				},
 			options: [
-				{ name: 'Get Documents', value: 'getDocuments', action: 'Get documents' },
-				{ name: 'Upsert Documents', value: 'upsertDocuments', action: 'Upsert documents' },
+				{ name: 'Get Many', value: 'getDocuments', action: 'Get many documents' },
+				{ name: 'Update', value: 'upsertDocuments', action: 'Update documents' },
+				{ name: 'Delete', value: 'deleteDocument', action: 'Delete a document' },
 			],
 				default: 'getDocuments',
 			},
 	
 			// Query Builder (only visible for the getAll functions)
 			{
-				displayName: 'Query Builder',
+				displayName: 'Search Filters',
 				name: 'queryBuilder',
 				type: 'fixedCollection',
 				typeOptions: { multipleValues: true },
@@ -115,7 +112,7 @@ export class Phx implements INodeType {
 						name: 'query',
 						values: [
 							{
-								displayName: 'Query Name or ID',
+								displayName: 'Field Name or ID',
 								name: 'query',
 								type: 'options',
 								typeOptions: {
@@ -158,7 +155,7 @@ export class Phx implements INodeType {
 					},
 				],
 				default: {},
-				description: 'Add query for any field',
+				description: 'Add search filters for any field',
 				displayOptions: {
 					show: {
 						operation: ["getProducts", "getAddresses", "getDocuments"],
@@ -167,7 +164,7 @@ export class Phx implements INodeType {
 			},
 
 			{
-				displayName: 'Input Filter',
+				displayName: 'Field Filters',
 				name: 'inputFilters',
 				type: 'fixedCollection',
 				typeOptions: { multipleValues: true },
@@ -197,7 +194,7 @@ export class Phx implements INodeType {
 					},
 				],
 				default: {},
-				description: 'Add filters for any field',
+				description: 'Add field-based filters for data selection',
 				displayOptions: {
 					show: {
 						operation: ["getProducts", "getAddresses", "getDocuments"],
@@ -206,18 +203,18 @@ export class Phx implements INodeType {
 			},
 	
 			{
-				displayName: 'Modifiers',
+				displayName: 'Field Values',
 				name: 'modifiers',
 				type: 'fixedCollection',
 				typeOptions: { multipleValues: true },
-				placeholder: 'Add Modifier',
+				placeholder: 'Add Field Value',
 				options: [
 					{
-						displayName: 'Modifiers',
+						displayName: 'Field',
 						name: 'modifier',
 						values: [
 						{
-							displayName: 'Modifiers Name or ID',
+							displayName: 'Field Name or ID',
 							name: 'modifiers',
 							type: 'options',
 							typeOptions: {
@@ -236,10 +233,24 @@ export class Phx implements INodeType {
 					},
 				],
 				default: {},
-				description: 'Add modifiers for any field',
+				description: 'Set field values for update operations',
 				displayOptions: {
 					show: {
 						operation: ["upsertProducts", "upsertAddresses", "upsertDocuments"],
+					},
+				},
+			},
+
+			{
+				displayName: 'Simplify',
+				name: 'simplify',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to return only the 10 most relevant fields and flatten nested fields.',
+				displayOptions: {
+					show: {
+						resource: ['product', 'address', "document"],
+						operation: ['getProducts', 'getAddresses', 'getDocuments'],
 					},
 				},
 			},
@@ -266,7 +277,7 @@ export class Phx implements INodeType {
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 
-			// Get operation and process filters
+			// Get operation
 			const operation = this.getNodeParameter('operation', itemIndex) as string;
 			
 			// Get Query Builder filters
@@ -291,9 +302,12 @@ export class Phx implements INodeType {
 			}));
 
 			try {
+
+				if (operation.includes('delete') && items.length > 1)
+					throw new NodeOperationError(this.getNode(), 'Delete operations can only process one item at a time. Please process items individually or use a loop to delete multiple items.', { itemIndex });
+
 				switch (operation) {
 					case 'getProducts': 
-					
 						returnItems.push(
 							...await getProductsOperation.call(
 							this,
@@ -356,9 +370,37 @@ export class Phx implements INodeType {
 						);
 						break;
 
+					case 'deleteProduct':
+						returnItems.push(
+							...await deleteProductOperation.call(
+							this,
+							items[itemIndex]
+							)
+						);
+						break;
+
+					case 'deleteAddress':
+						returnItems.push(
+							...await deleteAddressOperation.call(
+							this,
+							items[itemIndex]
+							)
+						);
+						break;
+
+					case 'deleteDocument':
+						returnItems.push(
+							...await deleteDocumentOperation.call(
+							this,
+							items[itemIndex]
+							)
+						);
+						break;
+
 				default:
-					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`, { itemIndex });
-			}
+					throw new NodeOperationError(this.getNode(), `The operation '${operation}' is not supported. Please select a valid operation from the dropdown.`, { itemIndex });
+				}
+
 			} catch (error: any) {
 				if (this.continueOnFail()) {
 					returnItems.push({ json: { error: (error as Error).message }, pairedItem: itemIndex });
